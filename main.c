@@ -12,6 +12,11 @@
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,
   &SPI, OLED_DC, OLED_RESET, OLED_CS);
 
+//Measurement Variables
+float panelAmps;
+float panelVolts;
+float batVolts;
+
 
 #define NUMFLAKES     10 // Number of snowflakes in the animation example
 
@@ -48,23 +53,24 @@ void TCA9548A(uint8_t bus){
   Serial.print(bus);
 }
 void setup() {
-  // Set up serial communication
-//   Serial.begin(9600);
-//   Wire.begin();
-//   TCA9548A(2);
-//   if (!joint1Encoder.begin(0x76)) {
-//     Serial.println("Could not find a valid device on bus 2, check your wiring!");
-//     while (1);
-//   }
-//   Serial.println();
+  //Set up serial communication
+  Serial.begin(9600);
+  Wire.begin();
+  TCA9548A(2);
+  if (!joint1Encoder.begin(0x76)) {
+    Serial.println("Could not find a valid device on bus 2, check your wiring!");
+    while (1);
+  }
+  Serial.println();
   
-//   TCA9548A(3);
-//   if (!joint2Encoder.begin(0x76)) {
-//     Serial.println("Could not find a valid device on bus 3, check your wiring!!");
-//     while (1);
-//   }
-//   Serial.println();
-// }
+  TCA9548A(3);
+  if (!joint2Encoder.begin(0x76)) {
+    Serial.println("Could not find a valid device on bus 3, check your wiring!!");
+    while (1);
+  }
+  Serial.println();
+}
+
 }
 
 void loop() {
