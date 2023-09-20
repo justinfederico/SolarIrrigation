@@ -4,10 +4,10 @@ This repository will have all firmware related resources pertaining to Team 8's 
 
 State Machine:
 ```mermaid
+scale 1200 height
 graph TD
 
 subgraph FSM
-    [*] --> Start
     Start(Start)
     Initialization(Initialization)
     Standby(Standby)
