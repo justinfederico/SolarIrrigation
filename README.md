@@ -13,14 +13,8 @@ graph TD
   Charging --> Standby
   Standby --> Error
   Charging --> Error
+  MPPT --> Error
   Error --> Standby
-
-  Start[Start]
-  Initialization[Initialization]
-  Standby[Standby]
-  MPPT[Maximum Power Point Tracking]
-  Charging[Battery Charging]
-  Error[Error]
 
   subgraph SubGraphKey
     Start[Start]
@@ -30,4 +24,10 @@ graph TD
     Charging[Battery Charging]
     Error[Error]
   end
+
+  click Standby "reservoirFull ?" "Enter Standby if reservoirFull condition is fulfilled"
+  click MPPT "reservoirFull ?" "Enter Standby if reservoirFull condition is fulfilled"
+  click Charging "reservoirFull ?" "Enter Standby if reservoirFull condition is fulfilled"
+  click Error "reservoirFull ?" "Enter Standby if reservoirFull condition is fulfilled"
+
 ```
