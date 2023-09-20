@@ -10,35 +10,31 @@ subgraph FSM
     Start(Start)
     Initialization(Initialization)
     Standby(Standby)
-    MPPT(Maximum Power Point Tracking)
-    Charging(Battery Charging)
+    MPPTCharging(MPPT Charging)
     Error(Error)
     Sleep(Sleep)
 
     Start -->|Start| Initialization
     Initialization -->|Standby| Standby
-    Standby -->|MPPT| MPPT
-    MPPT -->|Standby| Standby
-    Standby -->|Charging| Charging
-    Charging -->|Standby| Standby
+    Standby -->|MPPT| MPPTCharging("isSunny == true")
+    MPPTCharging -->|Standby| Standby("isSunny == false")
     Standby -->|Error| Error
-    Charging -->|Error| Error
-    MPPT -->|Error| Error
+    MPPTCharging -->|Error| Error
     Error -->|Standby| Standby
     Standby -->|Sleep| Sleep
     Sleep -->|Standby| Standby
 
     Standby -->|reservoirFull ?| Standby("Enter Standby if reservoirFull condition is fulfilled")
-    MPPT -->|reservoirFull ?| Standby("Enter Standby if reservoirFull condition is fulfilled")
-    Charging -->|reservoirFull ?| Standby("Enter Standby if reservoirFull condition is fulfilled")
+    MPPTCharging -->|reservoirFull ?| Standby("Enter Standby if reservoirFull condition is fulfilled")
     Error -->|reservoirFull ?| Standby("Enter Standby if reservoirFull condition is fulfilled")
 
     Standby -->|User input or environmental change| Standby("User input or environmental change")
-    MPPT -->|Continue MPPT tracking| MPPT("Continue MPPT tracking")
-    Charging -->|Charging battery| Charging("Charging battery")
+    MPPTCharging -->|Continue MPPT tracking| MPPTCharging("Continue MPPT tracking")
     Error -->|Error handling and recovery| Error("Error handling and recovery")
 
     Standby -->|isSunny == false| Sleep("isSunny == false")
     Sleep -->|isSunny == true| Standby("isSunny == true")
+end
+
 end
 ```
