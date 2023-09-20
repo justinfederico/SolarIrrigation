@@ -6,39 +6,39 @@ State Machine:
 ```mermaid
 graph TD
 
-subgraph SubGraphKey
-  Start[Start]
-  Initialization[Initialization]
-  Standby[Standby]
-  MPPT[Maximum Power Point Tracking]
-  Charging[Battery Charging]
-  Error[Error]
-  Sleep[Sleep]
+subgraph FSM
+    Start(Start)
+    Initialization(Initialization)
+    Standby(Standby)
+    MPPT(Maximum Power Point Tracking)
+    Charging(Battery Charging)
+    Error(Error)
+    Sleep(Sleep)
+
+    Start -->|Start| Initialization
+    Initialization -->|Standby| Standby
+    Standby -->|MPPT| MPPT
+    MPPT -->|Standby| Standby
+    Standby -->|Charging| Charging
+    Charging -->|Standby| Standby
+    Standby -->|Error| Error
+    Charging -->|Error| Error
+    MPPT -->|Error| Error
+    Error -->|Standby| Standby
+    Standby -->|Sleep| Sleep
+    Sleep -->|Standby| Standby
+
+    Standby -->|reservoirFull ?| Standby("Enter Standby if reservoirFull condition is fulfilled")
+    MPPT -->|reservoirFull ?| Standby("Enter Standby if reservoirFull condition is fulfilled")
+    Charging -->|reservoirFull ?| Standby("Enter Standby if reservoirFull condition is fulfilled")
+    Error -->|reservoirFull ?| Standby("Enter Standby if reservoirFull condition is fulfilled")
+
+    Standby -->|User input or environmental change| Standby("User input or environmental change")
+    MPPT -->|Continue MPPT tracking| MPPT("Continue MPPT tracking")
+    Charging -->|Charging battery| Charging("Charging battery")
+    Error -->|Error handling and recovery| Error("Error handling and recovery")
+
+    Standby -->|isSunny == false| Sleep("isSunny == false")
+    Sleep -->|isSunny == true| Standby("isSunny == true")
 end
-
-Start --> Initialization
-Initialization --> Standby
-Standby --> MPPT
-MPPT --> Standby
-Standby --> Charging
-Charging --> Standby
-Standby --> Error
-Charging --> Error
-MPPT --> Error
-Error --> Standby
-Standby --> Sleep
-Sleep --> Standby
-
-click Standby "reservoirFull ?" "Enter Standby if reservoirFull condition is fulfilled"
-click MPPT "reservoirFull ?" "Enter Standby if reservoirFull condition is fulfilled"
-click Charging "reservoirFull ?" "Enter Standby if reservoirFull condition is fulfilled"
-click Error "reservoirFull ?" "Enter Standby if reservoirFull condition is fulfilled"
-
-Standby --> Standby("User input or environmental change") --> Standby
-MPPT --> MPPT("Continue MPPT tracking") --> MPPT
-Charging --> Charging("Charging battery") --> Charging
-Error --> Error("Error handling and recovery") --> Error
-
-Standby --> Sleep("isSunny == false") --> Sleep
-Sleep --> Standby("isSunny == true") --> Standby
 ```
