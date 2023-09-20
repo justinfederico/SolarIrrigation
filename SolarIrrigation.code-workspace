@@ -4,10 +4,6 @@
 			"path": "."
 		},
 		{
-			"name": "SolarIrrigation",
-			"path": "../../../../PlatformIO/Projects/SolarIrrigation"
-		},
-		{
 			"name": "SolarArduino",
 			"path": "SolarArduino"
 		}
