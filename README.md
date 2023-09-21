@@ -4,37 +4,28 @@ This repository will have all firmware related resources pertaining to Team 8's 
 
 State Machine:
 ```mermaid
-graph TD
+stateDiagram-v2
+        state Standby
+        [*] --> Standby
+        Standby --> MPPT: isSunny==true
+        Standby --> Sleep: isSunny==false
+        state MPPT {
+        [*] --> Charging
+        Charging --> NotCharging : batFull == true
+        NotCharging --> Charging : batFull == false
+        --
+        [*] --> PumpIdle
+        PumpIdle --> PumpWater : reservoirFull == false && suffBat == true
+        PumpWater --> PumpIdle : reservoirFull == true
+    }
+    state Full <<join>>
+    NotCharging --> Full
+    PumpIdle --> Full
+    Full --> Standby
+    Sleep --> Standby: isSunny==true
+        
+        
+    
+    
 
-subgraph FSM
-    Start(Start)
-    Initialization(Initialization)
-    Standby(Standby)
-    MPPTCharging(MPPT Charging)
-    Error(Error)
-    Sleep(Sleep)
-
-    Start -->|Start| Initialization
-    Initialization -->|Standby| Standby
-    Standby -->|MPPT| MPPTCharging("isSunny == true")
-    MPPTCharging -->|Standby| Standby("isSunny == false")
-    Standby -->|Error| Error
-    MPPTCharging -->|Error| Error
-    Error -->|Standby| Standby
-    Standby -->|Sleep| Sleep
-    Sleep -->|Standby| Standby
-
-    Standby -->|reservoirFull ?| Standby("Enter Standby if reservoirFull condition is fulfilled")
-    MPPTCharging -->|reservoirFull ?| Standby("Enter Standby if reservoirFull condition is fulfilled")
-    Error -->|reservoirFull ?| Standby("Enter Standby if reservoirFull condition is fulfilled")
-
-    Standby -->|User input or environmental change| Standby("User input or environmental change")
-    MPPTCharging -->|Continue MPPT tracking| MPPTCharging("Continue MPPT tracking")
-    Error -->|Error handling and recovery| Error("Error handling and recovery")
-
-    Standby -->|isSunny == false| Sleep("isSunny == false")
-    Sleep -->|isSunny == true| Standby("isSunny == true")
-end
-
-end
 ```
