@@ -22,10 +22,23 @@ stateDiagram-v2
         [*] --> DisplayData
         DisplayData --> SolarPanelInfo
         DisplayData --> BatteryInfo
-        state BatteryInfo{
-            [*] --> checkBat
+        state BatteryInfo {
+            [*] --> checkBat 
+            state checkBat <<fork>>
+            checkBat --> batLow : 0% < Battery < 25%
+            checkBat --> batMid: 25% < Battery < 50%
+            checkBat --> batHigh: 50% < Battery < 75%
+            checkBat --> batHigher: 75% < Battery < 95%
+            checkBat --> batFull: 95% < Battery < 100%
+            batLow --> updateOLED: sufBat == false
+            batMid --> updateOLED
+            batHigh --> updateOLED
+            batHigher --> updateOLED
+            batFull --> updateOLED
+            updateOLED --> checkBat: Refresh Display
+            
         }
-        state SolarPanelInfo{
+        state SolarPanelInfo {
         [*] --> Read
         Read --> readVoltage
         Read --> readCurrent
