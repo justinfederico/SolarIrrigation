@@ -3,10 +3,8 @@
 #include <Wire.h>
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
+#include <avr/sleep.h>
 
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 64
-//Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT);
 //Measurement Variables
 const float AVCC = 4.863;
 float panelAmps;
@@ -33,29 +31,6 @@ boolean daytime = true; //make sure system knows if sleep should be turned off
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,
   &SPI, OLED_DC, OLED_RESET, OLED_CS);
 
-
-
-
-#define NUMFLAKES     10 // Number of snowflakes in the animation example
-#define LOGO_HEIGHT   16
-#define LOGO_WIDTH    16
-static const unsigned char PROGMEM logo_bmp[] =
-{ B00000000, B11000000,
-  B00000001, B11000000,
-  B00000001, B11000000,
-  B00000011, B11100000,
-  B11110011, B11100000,
-  B11111110, B11111000,
-  B01111110, B11111111,
-  B00110011, B10011111,
-  B00011111, B11111100,
-  B00001101, B01110000,
-  B00011011, B10100000,
-  B00111111, B11100000,
-  B00111111, B11110000,
-  B01111100, B11110000,
-  B01110000, B01110000,
-  B00000000, B00110000 };
 
 //interrupt handler
 volatile bool interruptOccurred = false;
@@ -125,39 +100,53 @@ void mpptAlgorithm() {
 
 
 
+bool isSunny = false;
+float batLevel = 11.5;
+int waterLevel = 50;
+enum State {
+  SLEEP,
+  STANDBY,
+  ACTIVE
+};
+
+volatile bool wakeup = false;
+
 void setup() {
-  // Initialize OLED display
-  int dummy; //get rid of this, need actual address
-  if (!display.begin(dummy, OLED_RESET)) {
-    Serial.println(F("SSD1306 allocation failed"));
-    for (;;);
-  }
-  Serial.begin(115200);
-  //Set up serial communication
-  // Serial.begin(9600);
-  // Wire.begin();
-  // TCA9548A(2);
-  // if (!dummy.begin(0x76)) {
-  //   Serial.println("Could not find a valid device on bus 2, check your wiring!");
-  //   while (1);
-  // }
-  // Serial.println();
-  
-  // TCA9548A(3);
-  // if (!dummy.begin(0x76)) {
-  //   Serial.println("Could not find a valid device on bus 3, check your wiring!!");
-  //   while (1);
-  // }
-  // Serial.println();
+  pinMode(2, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(2), wakeupISR, FALLING);
 }
 
-
-
+void wakeupISR() {
+  wakeup = true;
+}
+State currentState = STANDBY;
 void loop() {
-  //all this is test stuff atm
-  float Vin = ((float)analogRead(A0)/1023)*5;
-  Serial.println(Vin,3);
-  delay(1000);
-
+  switch (currentState) {
+    case SLEEP:
+      set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+      sleep_enable();
+      attachInterrupt(digitalPinToInterrupt(2), wakeupISR, FALLING);
+      while (!wakeup) {
+        sleep_cpu();
+      }
+      sleep_disable();
+      wakeup = false;
+      currentState = STANDBY;
+      // Exit sleep mode here
+      break;
+    case STANDBY:
+      if (!isSunny || batLevel <= 12.0) {
+        currentState = SLEEP;
+        // Enter sleep mode here
+      }
+      // Standby mode code here
+      break;
+      case ACTIVE:
+      if (!isSunny || batLevel <= 12.0 || waterLevel >= 75) {
+        currentState = STANDBY;
+        // Exit active mode here
+      }
+      // Active mode code here
+      break;
+  }
 }
-
