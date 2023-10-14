@@ -5,8 +5,15 @@
 #include <Adafruit_SSD1306.h>
 #include <avr/sleep.h>
 
+
+#define OLED_RESET 4
+Adafruit_SSD1306 display(128, 64, &Wire, OLED_RESET); // Initialize with the I2C addr 0x3D if not working use 0x3C (for the 128x64)
+
+  
 //Pin Definitions
 const int switchPin = 3; // Define the pin for the switch
+const int pumpPin = 2; // Define the pin for the pump
+const int panelPin = 4; // Define the pin for the solar panel
 
 //Measurement Variables
 const float AVCC = 4.863;
@@ -54,7 +61,7 @@ float readCurrent() {
     float AcsValue=0.0,Samples=0.0,AvgAcs=0.0,AcsValueF=0.0;
     
     for (int x = 0; x < 150; x++){ //Get 150 samples
-      AcsValue = analogRead(A0);     //Read current sensor values  
+      AcsValue = analogRead(A1);     //Read current sensor values  
       Samples = Samples + AcsValue;  //Add samples together
       delay (3); // let ADC settle before next sample 3ms
     }
@@ -65,6 +72,14 @@ float readCurrent() {
     Serial.print(AcsValueF);//Print the read current on Serial monitor
     delay(50);
     return current;
+}
+
+float readBatteryVoltage() {
+  // Read voltage using voltage divider (prolly two resistors)
+  int rawValue = analogRead(A2);
+  float voltage = (rawValue * (float)analogRead(A1)) / 1024.0;
+  voltage = voltage / 2.0; // Adjust for voltage divider
+  return voltage;
 }
 
 float batLevel = 11.5;
@@ -82,10 +97,22 @@ void wakeupISR() {
 }
 char ch=0; //global variable for Serial.read()
 void setup() {
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // Start the OLED display
+  display.setTextColor(WHITE);
   Serial.begin(9600);
   pinMode(2, INPUT_PULLUP);
   pinMode(switchPin, INPUT_PULLUP); // Set up the switch pin with a pull-up resistor
   attachInterrupt(digitalPinToInterrupt(2), handleInterrupt, FALLING);
+
+  delay(2000);         // wait for initializing
+  display.clearDisplay(); // clear display
+  display.setTextSize(1);          // text size
+  display.setTextColor(WHITE);     // text color
+  display.setCursor(0, 10);        // position to display
+  display.println("SIPS"); // text to display
+  display.display(); 
+
+
 }
 
 State currentState = STANDBY;
@@ -103,7 +130,7 @@ void loop() {
   } else {
     currentState = STANDBY;
   }
-  
+
   unsigned long currentTime = millis();
 
   // Read solar panel voltage every 1 second
@@ -117,7 +144,17 @@ void loop() {
     panelAmps = readCurrent();
     lastCurrentReadTime = currentTime;
   }
-
+  display.clearDisplay(); // clear display
+  display.setCursor(0, 0);
+  display.print("PV Volts:"); // text to display
+  display.println(panelVolts); 
+  display.print("PV Amps:"); 
+  display.println(panelAmps); 
+  display.print("PV Power:"); 
+  display.println(currentSolarWatts); 
+  display.print("Bat Power:"); 
+  display.println(batLevel); 
+  display.display(); 
 
   switch (currentState) {
     case SLEEP:
@@ -134,10 +171,18 @@ void loop() {
     break;
     case STANDBY:
       if (!isSunny || batLevel <= 12.0) {
+        digitalWrite(2,  HIGH); //turn off the pump
         currentState = SLEEP;
         // Enter sleep mode here
       }
       // Standby mode code here
+
+      if (batLevel >= 13.4) {
+          digitalWrite(3,  HIGH); //turn off pv to let bat discharge
+        }else if (batLevel <= 13.4)
+        {
+          digitalWrite(3,  LOW); //turn on pv to charge bat
+        }
       break;
     case ACTIVE:
       if (isSunny || (batLevel <= 12.0 || waterLevel >= 75)) {
@@ -145,6 +190,13 @@ void loop() {
         // Exit active mode here
       }
       // Active mode code here
+      digitalWrite(2,  LOW); //turn on the pump
+      if (batLevel >= 13.4) {
+        digitalWrite(3,  HIGH); //turn off pv to let bat discharge
+      }else if (batLevel <= 13.4)
+      {
+        digitalWrite(3,  LOW); //turn on pv to charge bat
+      }
       break;
-  }
+  
 }
