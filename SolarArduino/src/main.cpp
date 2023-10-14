@@ -5,6 +5,9 @@
 #include <Adafruit_SSD1306.h>
 #include <avr/sleep.h>
 
+//Pin Definitions
+const int switchPin = 3; // Define the pin for the switch
+
 //Measurement Variables
 const float AVCC = 4.863;
 float panelAmps;
@@ -15,8 +18,9 @@ float currentSolarWatts;
 float previousSolarWatts;
 unsigned int interruptCounter;
 boolean load = false; //assume initial state of uncharged
-boolean daytime = true; //make sure system knows if sleep should be turned off
-
+boolean isSunny = true; //make sure system knows if sleep should be turned off
+boolean pumpActive = false; //assume pump is off
+boolean batFull = false; //assume battery is not full
 
 //screen constants rec by adafruit
 #define TRUE 1
@@ -46,10 +50,23 @@ float readSolarPanelVoltage() {
 }
 
 float readCurrent() {
- int current;
- return current;
+    unsigned int x=0;
+    float AcsValue=0.0,Samples=0.0,AvgAcs=0.0,AcsValueF=0.0;
+    
+    for (int x = 0; x < 150; x++){ //Get 150 samples
+      AcsValue = analogRead(A0);     //Read current sensor values  
+      Samples = Samples + AcsValue;  //Add samples together
+      delay (3); // let ADC settle before next sample 3ms
+    }
+    AvgAcs=Samples/150.0;//Taking Average of Samples
+    
+    AcsValueF = (2.5 - (AvgAcs * (5.0 / 1024.0)) )/0.100;
+    float current = AcsValueF;
+    Serial.print(AcsValueF);//Print the read current on Serial monitor
+    delay(50);
+    return current;
 }
-bool isSunny = false;
+
 float batLevel = 11.5;
 int waterLevel = 50;
 enum State {
@@ -58,33 +75,63 @@ enum State {
   ACTIVE
 };
 
+volatile bool wakeup = false;
+
 void wakeupISR() {
   wakeup = true;
 }
-
-volatile bool wakeup = false;
-
+char ch=0; //global variable for Serial.read()
 void setup() {
+  Serial.begin(9600);
   pinMode(2, INPUT_PULLUP);
+  pinMode(switchPin, INPUT_PULLUP); // Set up the switch pin with a pull-up resistor
   attachInterrupt(digitalPinToInterrupt(2), handleInterrupt, FALLING);
 }
 
 State currentState = STANDBY;
+unsigned long lastVoltageReadTime = 0;
+unsigned long lastCurrentReadTime = 0;
+const unsigned long voltageReadInterval = 1000;  // 1 second
+const unsigned long currentReadInterval = 2000;  // 2 seconds
 
 void loop() {
+  int switchState = digitalRead(switchPin);
+
+  // Check the state of the switch
+  if (switchState == LOW) { // Switch is pressed (LOW)
+    currentState = SLEEP;
+  } else {
+    currentState = STANDBY;
+  }
+  
+  unsigned long currentTime = millis();
+
+  // Read solar panel voltage every 1 second
+  if (currentTime - lastVoltageReadTime >= voltageReadInterval) {
+    panelVolts = readSolarPanelVoltage();
+    lastVoltageReadTime = currentTime;
+  }
+
+  // Read current every 2 seconds
+  if (currentTime - lastCurrentReadTime >= currentReadInterval) {
+    panelAmps = readCurrent();
+    lastCurrentReadTime = currentTime;
+  }
+
+
   switch (currentState) {
     case SLEEP:
       set_sleep_mode(SLEEP_MODE_PWR_DOWN);
       sleep_enable();
       attachInterrupt(digitalPinToInterrupt(2), wakeupISR, FALLING);
-      while (!wakeup) {
+      while (!wakeup && !isSunny) { // Exit sleep mode when isSunny becomes true
         sleep_cpu();
       }
       sleep_disable();
       wakeup = false;
       currentState = STANDBY;
       // Exit sleep mode here
-      break;
+    break;
     case STANDBY:
       if (!isSunny || batLevel <= 12.0) {
         currentState = SLEEP;
@@ -92,7 +139,7 @@ void loop() {
       }
       // Standby mode code here
       break;
-      case ACTIVE:
+    case ACTIVE:
       if (isSunny || (batLevel <= 12.0 || waterLevel >= 75)) {
         currentState = STANDBY;
         // Exit active mode here
