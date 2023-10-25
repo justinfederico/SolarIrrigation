@@ -6,9 +6,6 @@
 #include <avr/sleep.h>
 
 
-#define OLED_RESET 4
-
-
   
 //Pin Definitions
 const int switchPin = 3; // Define the pin for the switch
