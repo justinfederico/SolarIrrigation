@@ -7,7 +7,7 @@
 
 
 #define OLED_RESET 4
-Adafruit_SSD1306 display(128, 64, &Wire, OLED_RESET); // Initialize with the I2C addr 0x3D if not working use 0x3C (for the 128x64)
+
 
   
 //Pin Definitions
@@ -199,4 +199,5 @@ void loop() {
       }
       break;
   
+}
 }
