@@ -58,7 +58,7 @@ float readCurrent() {
     float AcsValue=0.0,Samples=0.0,AvgAcs=0.0,AcsValueF=0.0;
     
     for (int x = 0; x < 150; x++){ //Get 150 samples
-      AcsValue = analogRead(A1);     //Read current sensor values  
+      AcsValue = analogRead(A2);     //Read current sensor values  
       Samples = Samples + AcsValue;  //Add samples together
       delay (3); // let ADC settle before next sample 3ms
     }
@@ -73,12 +73,66 @@ float readCurrent() {
 
 float readBatteryVoltage() {
   // Read voltage using voltage divider (prolly two resistors)
-  int rawValue = analogRead(A2);
+  int rawValue = analogRead(A1);
   float voltage = (rawValue * (float)analogRead(A1)) / 1024.0;
   voltage = voltage / 2.0; // Adjust for voltage divider
   return voltage;
 }
 
+void updateDisplay(){
+    static const unsigned char PROGMEM image_FaceNormal_29x14_bits[] = {0x00,0x00,0x00,0x00,0x3c,0x00,0x01,0xe0,0x7a,0x00,0x03,0xd0,0x7e,0x00,0x03,0xf0,0x7e,0x00,0x03,0xf0,0x7e,0x00,0x03,0xf0,0x3c,0x00,0x01,0xe0,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x10,0x40,0x00,0x00,0x10,0x40,0x00,0x00,0x10,0x40,0x00,0x00,0x08,0x80,0x00,0x00,0x07,0x00,0x00};
+    display.drawRect(1, 32, 46, 21, 0xFFFF);
+    display.drawRect(46, 38, 3, 9, 0xFFFF);
+    display.fillRect(3, 34, 42, 17, 0xFFFF);
+    display.setTextColor(0xFFFF);
+    display.setTextSize(1);
+    display.setCursor(1, 8);
+    display.setTextWrap(false);
+    display.print("Voltage:");
+    display.setTextColor(0xFFFF);
+    display.setTextSize(1);
+    display.setCursor(1, 17);
+    display.setTextWrap(false);
+    display.print("Current:");
+    display.setTextColor(0xFFFF);
+    display.setTextSize(1);
+    display.setCursor(1, 26);
+    display.setTextWrap(false);
+    display.print("Power:");
+    display.setTextColor(0xFFFF);
+    display.setTextSize(1);
+    display.setCursor(1, 62);
+    display.setTextWrap(false);
+    display.print("Battery LvL");
+    display.setTextColor(0xFFFF);
+    display.setTextSize(1);
+    display.setCursor(45, 17);
+    display.setTextWrap(false);
+    display.print("1");
+    display.setTextColor(0xFFFF);
+    display.setTextSize(1);
+    display.setCursor(45, 26);
+    display.setTextWrap(false);
+    display.print("5");
+    display.setTextColor(0xFFFF);
+    display.setTextSize(1);
+    display.setCursor(45, 8);
+    display.setTextWrap(false);
+    display.print("12");
+    display.drawLine(59, 64, 59, 0, 0xFFFF);
+    display.setTextColor(0xFFFF);
+    display.setTextSize(1);
+    display.setCursor(74, 62);
+    display.setTextWrap(false);
+    display.print("Water LvL");
+    display.setTextColor(0xFFFF);
+    display.setTextSize(1);
+    display.setCursor(64, 10);
+    display.setTextWrap(false);
+    display.print("System:");
+    display.drawBitmap( 99, 0, image_FaceNormal_29x14_bits, 29, 14, 0xFFFF);
+
+}
 float batLevel = 11.5;
 int waterLevel = 50;
 enum State {
@@ -118,6 +172,9 @@ unsigned long lastCurrentReadTime = 0;
 const unsigned long voltageReadInterval = 1000;  // 1 second
 const unsigned long currentReadInterval = 2000;  // 2 seconds
 
+
+
+/////////////////////////MAIN LOOP/////////////////////////
 void loop() {
   int switchState = digitalRead(switchPin);
 
@@ -141,18 +198,7 @@ void loop() {
     panelAmps = readCurrent();
     lastCurrentReadTime = currentTime;
   }
-  display.clearDisplay(); // clear display
-  display.setCursor(0, 0);
-  display.print("PV Volts:"); // text to display
-  display.println(panelVolts); 
-  display.print("PV Amps:"); 
-  display.println(panelAmps); 
-  display.print("PV Power:"); 
-  display.println(currentSolarWatts); 
-  display.print("Bat Power:"); 
-  display.println(batLevel); 
-  display.display(); 
-
+  
   switch (currentState) {
     case SLEEP:
       set_sleep_mode(SLEEP_MODE_PWR_DOWN);
@@ -168,17 +214,17 @@ void loop() {
     break;
     case STANDBY:
       if (!isSunny || batLevel <= 12.0) {
-        digitalWrite(2,  HIGH); //turn off the pump
+        digitalWrite(3,  HIGH); //turn off the pump
         currentState = SLEEP;
         // Enter sleep mode here
       }
       // Standby mode code here
 
       if (batLevel >= 13.4) {
-          digitalWrite(3,  HIGH); //turn off pv to let bat discharge
+          digitalWrite(2,  HIGH); //turn off pv to let bat discharge
         }else if (batLevel <= 13.4)
         {
-          digitalWrite(3,  LOW); //turn on pv to charge bat
+          digitalWrite(2,  LOW); //turn on pv to charge bat
         }
       break;
     case ACTIVE:
@@ -187,12 +233,12 @@ void loop() {
         // Exit active mode here
       }
       // Active mode code here
-      digitalWrite(2,  LOW); //turn on the pump
+      digitalWrite(3,  LOW); //turn on the pump
       if (batLevel >= 13.4) {
-        digitalWrite(3,  HIGH); //turn off pv to let bat discharge
+        digitalWrite(2,  HIGH); //turn off pv to let bat discharge
       }else if (batLevel <= 13.4)
       {
-        digitalWrite(3,  LOW); //turn on pv to charge bat
+        digitalWrite(2,  LOW); //turn on pv to charge bat
       }
       break;
   
