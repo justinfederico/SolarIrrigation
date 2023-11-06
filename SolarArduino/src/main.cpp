@@ -56,20 +56,18 @@ float readSolarPanelVoltage() {
 }
 
 float readCurrent() {
-    float AcsValue=0.0,Samples=0.0,AvgAcs=0.0,AcsValueF=0.0;
-    
-    for (int x = 0; x < 150; x++){ //Get 150 samples
-      AcsValue = analogRead(A2);     //Read current sensor values  
-      Samples = Samples + AcsValue;  //Add samples together
-      delay (3); // let ADC settle before next sample 3ms
-    }
-    AvgAcs=Samples/150.0;//Taking Average of Samples
-    
-    AcsValueF = (2.5 - (AvgAcs * (5.0 / 1024.0)) )/0.100;
-    float current = AcsValueF;
-    Serial.print(AcsValueF);//Print the read current on Serial monitor
-    delay(50);
-    return current;
+    float AcsValue = 0.0, Samples = 0.0, AvgAcs = 0.0, AcsValueF = 0.0;
+ 
+  for (int x = 0; x < 150; x++) { //Get 150 samples
+    AcsValue = analogRead(A0);     //Read current sensor values
+    Samples = Samples + AcsValue;  //Add samples together
+    delay (3); // let ADC settle before following sample 3ms
+  }
+  AvgAcs = Samples / 150.0; //Taking Average of Samples
+  AcsValueF = (2.5 - (AvgAcs * (5.0 / 1024.0)) ) / 0.185;
+ 
+  Serial.print(AcsValueF);//Print the read current on Serial monitor
+  delay(50);
 }
 int readWaterLevel(){
   long t = 0, h = 0, hp = 0;
