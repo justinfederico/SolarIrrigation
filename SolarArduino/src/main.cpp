@@ -109,51 +109,50 @@ float readBatteryVoltage() {
 
 void updateDisplay(){
     u8g2.clearBuffer();					// clear the internal memory
-	float voltValue = 12.50;
-  // code from https://lopaka.app/
-	float PanelVolts = readSolarPanelVoltage();
-  float PanelAmps = readCurrent();
-  float PanelWatts = PanelVolts * PanelAmps;
-  u8g2.setBitmapMode(1);
-  u8g2.drawFrame(1, 32, 46, 21);
-  u8g2.drawFrame(46, 38, 3, 9);
-  u8g2.drawBox(3, 34, progress, 17);
-  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-  u8g2.drawStr(1, 8, "Voltage:");
-  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-  u8g2.drawStr(1, 17, "Current:");
-  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-  u8g2.drawStr(1, 26, "Power:");
-  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-  u8g2.drawStr(1, 62, "Battery LvL");
-  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-  u8g2.setCursor(40, 17);
-  u8g2.print(PanelAmps);
-  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-  u8g2.setCursor(40, 26);
-  u8g2.print(PanelWatts);
-  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-  u8g2.setCursor(40, 8);
-  u8g2.print(PanelVolts);
-  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-  u8g2.drawStr(74, 62, "Water LvL");
-  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-  u8g2.drawStr(66, 8, "Volts");
-  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-  u8g2.drawStr(66, 17, "Amps");
-  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-  u8g2.drawStr(66, 26, "Watts");
-  u8g2.drawXBMP( 99, 0, 29, 14, image_FaceNormal_29x14_bits);
+    // code from https://lopaka.app/
+    float PanelVolts = readSolarPanelVoltage();
+    float PanelAmps = readCurrent();
+    float PanelWatts = PanelVolts * PanelAmps;
+    u8g2.setBitmapMode(1);
+    u8g2.drawFrame(1, 32, 46, 21);
+    u8g2.drawFrame(46, 38, 3, 9);
+    u8g2.drawBox(3, 34, progress, 17);
+    u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+    u8g2.drawStr(1, 8, "Voltage:");
+    u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+    u8g2.drawStr(1, 17, "Current:");
+    u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+    u8g2.drawStr(1, 26, "Power:");
+    u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+    u8g2.drawStr(1, 62, "Battery LvL");
+    u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+    u8g2.setCursor(40, 17);
+    u8g2.print(PanelAmps);
+    u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+    u8g2.setCursor(40, 26);
+    u8g2.print(PanelWatts);
+    u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+    u8g2.setCursor(40, 8);
+    u8g2.print(PanelVolts);
+    u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+    u8g2.drawStr(74, 62, "Water LvL");
+    u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+    u8g2.drawStr(66, 8, "Volts");
+    u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+    u8g2.drawStr(66, 17, "Amps");
+    u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+    u8g2.drawStr(66, 26, "Watts");
+    u8g2.drawXBMP( 99, 0, 29, 14, image_FaceNormal_29x14_bits);
 
 
 
-  u8g2.sendBuffer();					// transfer internal memory to the display
-  
-  // increase the progress value to go over 0-100
-	progress = progress + 1;
-	if (progress > 42) {
-		progress = 0;
-	}
+    u8g2.sendBuffer();					// transfer internal memory to the display
+    
+    // increase the progress value to go over 0-100
+    progress = progress + 1;
+    if (progress > 42) {
+      progress = 0;
+    }
 
 }
 float batLevel = 11.5;
