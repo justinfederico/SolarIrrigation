@@ -4,7 +4,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <avr/sleep.h>
-
+#include <U8g2lib.h>
 
   
 //Pin Definitions
@@ -14,6 +14,8 @@ const int panelPin = 4; // Define the pin for the solar panel
 
 //Measurement Variables
 const float AVCC = 4.863;
+int trig = 12;
+int echo = 11;
 float panelAmps;
 float panelVolts;
 float batVolts;
@@ -25,6 +27,7 @@ boolean load = false; //assume initial state of uncharged
 boolean isSunny = true; //make sure system knows if sleep should be turned off
 boolean pumpActive = false; //assume pump is off
 boolean batFull = false; //assume battery is not full
+int progress = 0; // progress of the progressbar
 
 //screen constants rec by adafruit
 #define TRUE 1
@@ -36,9 +39,8 @@ boolean batFull = false; //assume battery is not full
 #define OLED_DC     8
 #define OLED_CS     10
 #define OLED_RESET  9
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT,
-  &SPI, OLED_DC, OLED_RESET, OLED_CS);
-
+U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE); // initialization for the used OLED display
+static const unsigned char image_FaceNormal_29x14_bits[] U8X8_PROGMEM = {0x00,0x00,0x00,0x00,0x3c,0x00,0x80,0x07,0x5e,0x00,0xc0,0x0b,0x7e,0x00,0xc0,0x0f,0x7e,0x00,0xc0,0x0f,0x7e,0x00,0xc0,0x0f,0x3c,0x00,0x80,0x07,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x08,0x02,0x00,0x00,0x08,0x02,0x00,0x00,0x08,0x02,0x00,0x00,0x10,0x01,0x00,0x00,0xe0,0x00,0x00};
 
 //interrupt handler
 volatile bool interruptOccurred = false;
@@ -54,7 +56,6 @@ float readSolarPanelVoltage() {
 }
 
 float readCurrent() {
-    unsigned int x=0;
     float AcsValue=0.0,Samples=0.0,AvgAcs=0.0,AcsValueF=0.0;
     
     for (int x = 0; x < 150; x++){ //Get 150 samples
@@ -70,7 +71,34 @@ float readCurrent() {
     delay(50);
     return current;
 }
-
+int readWaterLevel(){
+  long t = 0, h = 0, hp = 0;
+  
+  // Transmitting pulse
+  digitalWrite(trig, LOW);
+  delayMicroseconds(2);
+  digitalWrite(trig, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(trig, LOW);
+  
+  // Waiting for pulse
+  t = pulseIn(echo, HIGH);
+  
+  // Calculating distance 
+  h = t / 58;
+ 
+  h = h - 6;  // offset correction
+  h = 50 - h;  // water height, 0 - 50 cm
+  
+  hp = 2 * h;  // distance in %, 0-100 %
+  
+  // Sending to computer
+  Serial.print(hp);
+  // Serial.print(" cm\n");
+  Serial.print("\n");
+  return hp;
+  delay(1000);
+}
 float readBatteryVoltage() {
   // Read voltage using voltage divider (prolly two resistors)
   int rawValue = analogRead(A1);
@@ -80,57 +108,52 @@ float readBatteryVoltage() {
 }
 
 void updateDisplay(){
-    static const unsigned char PROGMEM image_FaceNormal_29x14_bits[] = {0x00,0x00,0x00,0x00,0x3c,0x00,0x01,0xe0,0x7a,0x00,0x03,0xd0,0x7e,0x00,0x03,0xf0,0x7e,0x00,0x03,0xf0,0x7e,0x00,0x03,0xf0,0x3c,0x00,0x01,0xe0,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x10,0x40,0x00,0x00,0x10,0x40,0x00,0x00,0x10,0x40,0x00,0x00,0x08,0x80,0x00,0x00,0x07,0x00,0x00};
-    display.drawRect(1, 32, 46, 21, 0xFFFF);
-    display.drawRect(46, 38, 3, 9, 0xFFFF);
-    display.fillRect(3, 34, 42, 17, 0xFFFF);
-    display.setTextColor(0xFFFF);
-    display.setTextSize(1);
-    display.setCursor(1, 8);
-    display.setTextWrap(false);
-    display.print("Voltage:");
-    display.setTextColor(0xFFFF);
-    display.setTextSize(1);
-    display.setCursor(1, 17);
-    display.setTextWrap(false);
-    display.print("Current:");
-    display.setTextColor(0xFFFF);
-    display.setTextSize(1);
-    display.setCursor(1, 26);
-    display.setTextWrap(false);
-    display.print("Power:");
-    display.setTextColor(0xFFFF);
-    display.setTextSize(1);
-    display.setCursor(1, 62);
-    display.setTextWrap(false);
-    display.print("Battery LvL");
-    display.setTextColor(0xFFFF);
-    display.setTextSize(1);
-    display.setCursor(45, 17);
-    display.setTextWrap(false);
-    display.print("1");
-    display.setTextColor(0xFFFF);
-    display.setTextSize(1);
-    display.setCursor(45, 26);
-    display.setTextWrap(false);
-    display.print("5");
-    display.setTextColor(0xFFFF);
-    display.setTextSize(1);
-    display.setCursor(45, 8);
-    display.setTextWrap(false);
-    display.print("12");
-    display.drawLine(59, 64, 59, 0, 0xFFFF);
-    display.setTextColor(0xFFFF);
-    display.setTextSize(1);
-    display.setCursor(74, 62);
-    display.setTextWrap(false);
-    display.print("Water LvL");
-    display.setTextColor(0xFFFF);
-    display.setTextSize(1);
-    display.setCursor(64, 10);
-    display.setTextWrap(false);
-    display.print("System:");
-    display.drawBitmap( 99, 0, image_FaceNormal_29x14_bits, 29, 14, 0xFFFF);
+    u8g2.clearBuffer();					// clear the internal memory
+	float voltValue = 12.50;
+  // code from https://lopaka.app/
+	float PanelVolts = readSolarPanelVoltage();
+  float PanelAmps = readCurrent();
+  float PanelWatts = PanelVolts * PanelAmps;
+  u8g2.setBitmapMode(1);
+  u8g2.drawFrame(1, 32, 46, 21);
+  u8g2.drawFrame(46, 38, 3, 9);
+  u8g2.drawBox(3, 34, progress, 17);
+  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+  u8g2.drawStr(1, 8, "Voltage:");
+  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+  u8g2.drawStr(1, 17, "Current:");
+  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+  u8g2.drawStr(1, 26, "Power:");
+  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+  u8g2.drawStr(1, 62, "Battery LvL");
+  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+  u8g2.setCursor(40, 17);
+  u8g2.print(PanelAmps);
+  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+  u8g2.setCursor(40, 26);
+  u8g2.print(PanelWatts);
+  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+  u8g2.setCursor(40, 8);
+  u8g2.print(PanelVolts);
+  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+  u8g2.drawStr(74, 62, "Water LvL");
+  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+  u8g2.drawStr(66, 8, "Volts");
+  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+  u8g2.drawStr(66, 17, "Amps");
+  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+  u8g2.drawStr(66, 26, "Watts");
+  u8g2.drawXBMP( 99, 0, 29, 14, image_FaceNormal_29x14_bits);
+
+
+
+  u8g2.sendBuffer();					// transfer internal memory to the display
+  
+  // increase the progress value to go over 0-100
+	progress = progress + 1;
+	if (progress > 42) {
+		progress = 0;
+	}
 
 }
 float batLevel = 11.5;
@@ -148,22 +171,15 @@ void wakeupISR() {
 }
 char ch=0; //global variable for Serial.read()
 void setup() {
-  display.begin(SSD1306_SWITCHCAPVCC, 0x3C); // Start the OLED display
-  display.setTextColor(WHITE);
+  pinMode(trig, OUTPUT);
+  pinMode(echo, INPUT); 
+  u8g2.begin(); // start the u8g2 library
   Serial.begin(9600);
   pinMode(2, INPUT_PULLUP);
   pinMode(switchPin, INPUT_PULLUP); // Set up the switch pin with a pull-up resistor
   attachInterrupt(digitalPinToInterrupt(2), handleInterrupt, FALLING);
 
   delay(2000);         // wait for initializing
-  display.clearDisplay(); // clear display
-  display.setTextSize(1);          // text size
-  display.setTextColor(WHITE);     // text color
-  display.setCursor(0, 10);        // position to display
-  display.println("SIPS"); // text to display
-  display.display(); 
-
-
 }
 
 State currentState = STANDBY;
@@ -198,7 +214,7 @@ void loop() {
     panelAmps = readCurrent();
     lastCurrentReadTime = currentTime;
   }
-  
+  readWaterLevel();
   switch (currentState) {
     case SLEEP:
       set_sleep_mode(SLEEP_MODE_PWR_DOWN);
@@ -225,6 +241,7 @@ void loop() {
         }else if (batLevel <= 13.4)
         {
           digitalWrite(2,  LOW); //turn on pv to charge bat
+          updateDisplay();
         }
       break;
     case ACTIVE:
@@ -236,9 +253,11 @@ void loop() {
       digitalWrite(3,  LOW); //turn on the pump
       if (batLevel >= 13.4) {
         digitalWrite(2,  HIGH); //turn off pv to let bat discharge
+        updateDisplay();
       }else if (batLevel <= 13.4)
       {
         digitalWrite(2,  LOW); //turn on pv to charge bat
+        updateDisplay();
       }
       break;
   
