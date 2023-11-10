@@ -22,6 +22,8 @@ float batVolts;
 float housingTemp;
 float currentSolarWatts;
 float previousSolarWatts;
+const float lowBat = 12.0;
+const float fullBatt = 13.6;
 unsigned int interruptCounter;
 boolean load = false; //assume initial state of uncharged
 boolean isSunny = true; //make sure system knows if sleep should be turned off
@@ -49,8 +51,8 @@ void handleInterrupt() {
 }
 float readSolarPanelVoltage() {
   // Read voltage using voltage divider (prolly two resistors)
-  int rawValue = analogRead(A0);
-  float voltage = (rawValue * (float)analogRead(A0)) / 1024.0;
+  int rawValue = analogRead(A3);
+  float voltage = (rawValue * (float)analogRead(A3)) / 1024.0;
   voltage = voltage / 2.0; // Adjust for voltage divider
   return voltage;
 }
@@ -64,9 +66,10 @@ float readCurrent() {
     delay (3); // let ADC settle before following sample 3ms
   }
   AvgAcs = Samples / 150.0; //Taking Average of Samples
-  AcsValueF = (2.5 - (AvgAcs * (5.0 / 1024.0)) ) / 0.185;
+  AcsValueF = (2.5 - (AvgAcs * (5.0 / 1024.0)) )/0.100; //scaled for 20A current sensor
  
   Serial.print(AcsValueF);//Print the read current on Serial monitor
+  return AcsValueF;
   delay(50);
 }
 int readWaterLevel(){
@@ -135,11 +138,11 @@ void updateDisplay(){
     u8g2.setFont(u8g2_font_haxrcorp4089_tr);
     u8g2.drawStr(74, 62, "Water LvL");
     u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-    u8g2.drawStr(66, 8, "Volts");
+    u8g2.drawStr(70, 8, "Volts");
     u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-    u8g2.drawStr(66, 17, "Amps");
+    u8g2.drawStr(70, 17, "Amps");
     u8g2.setFont(u8g2_font_haxrcorp4089_tr);
-    u8g2.drawStr(66, 26, "Watts");
+    u8g2.drawStr(70, 26, "Watts");
     u8g2.drawXBMP( 99, 0, 29, 14, image_FaceNormal_29x14_bits);
 
 
