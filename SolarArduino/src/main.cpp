@@ -30,6 +30,8 @@ boolean isSunny = true; //make sure system knows if sleep should be turned off
 boolean pumpActive = false; //assume pump is off
 boolean batFull = false; //assume battery is not full
 int progress = 0; // progress of the progressbar
+float R1 = 68000.0;
+float R2 = 10000.0;
 
 //screen constants rec by adafruit
 #define TRUE 1
@@ -54,8 +56,8 @@ void handleInterrupt() {
 float readSolarPanelVoltage() {
   // Read voltage using voltage divider (prolly two resistors)
   int rawValue = analogRead(A3);
-  float voltage = (rawValue * (float)analogRead(A3)) / 1024.0;
-  voltage = voltage / 2.0; // Adjust for voltage divider
+  float ADCvoltage = (rawValue * 5.1)/1023;
+  float voltage = ADCvoltage / (R2/(R1+R2));
   Serial.print("Solar Panel Voltage: ");
   Serial.print(voltage);
   Serial.print("\n");
