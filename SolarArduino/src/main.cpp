@@ -46,14 +46,20 @@ static const unsigned char image_FaceNormal_29x14_bits[] U8X8_PROGMEM = {0x00,0x
 
 //interrupt handler
 volatile bool interruptOccurred = false;
+
 void handleInterrupt() {
   interruptOccurred = true;
 }
+
 float readSolarPanelVoltage() {
   // Read voltage using voltage divider (prolly two resistors)
   int rawValue = analogRead(A3);
   float voltage = (rawValue * (float)analogRead(A3)) / 1024.0;
   voltage = voltage / 2.0; // Adjust for voltage divider
+  Serial.print("Solar Panel Voltage: ");
+  Serial.print(voltage);
+  Serial.print("\n");
+
   return voltage;
 }
 
@@ -67,39 +73,44 @@ float readCurrent() {
   }
   AvgAcs = Samples / 150.0; //Taking Average of Samples
   AcsValueF = (2.5 - (AvgAcs * (5.0 / 1024.0)) )/0.100; //scaled for 20A current sensor
- 
+  Serial.print("Current: ");
   Serial.print(AcsValueF);//Print the read current on Serial monitor
+  Serial.print("\n");
+
   return AcsValueF;
   delay(50);
 }
-int readWaterLevel(){
-  long t = 0, h = 0, hp = 0;
+
+// int readWaterLevel(){
+//   long t = 0, h = 0, hp = 0;
   
-  // Transmitting pulse
-  digitalWrite(trig, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trig, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trig, LOW);
+//   // Transmitting pulse
+//   digitalWrite(trig, LOW);
+//   delayMicroseconds(2);
+//   digitalWrite(trig, HIGH);
+//   delayMicroseconds(10);
+//   digitalWrite(trig, LOW);
   
-  // Waiting for pulse
-  t = pulseIn(echo, HIGH);
+//   // Waiting for pulse
+//   t = pulseIn(echo, HIGH);
   
-  // Calculating distance 
-  h = t / 58;
+//   // Calculating distance 
+//   h = t / 58;
  
-  h = h - 6;  // offset correction
-  h = 50 - h;  // water height, 0 - 50 cm
+//   h = h - 6;  // offset correction
+//   h = 50 - h;  // water height, 0 - 50 cm
   
-  hp = 2 * h;  // distance in %, 0-100 %
+//   hp = 2 * h;  // distance in %, 0-100 %
   
-  // Sending to computer
-  Serial.print(hp);
-  // Serial.print(" cm\n");
-  Serial.print("\n");
-  return hp;
-  delay(1000);
-}
+//   // Sending to computer
+//   Serial.println("Water Height: ");
+//   Serial.print(hp);
+//   // Serial.print(" cm\n");
+//   Serial.print("\n");
+//   return hp;
+//   delay(1000);
+// }
+
 float readBatteryVoltage() {
   // Read voltage using voltage divider (prolly two resistors)
   int rawValue = analogRead(A1);
@@ -169,12 +180,15 @@ volatile bool wakeup = false;
 void wakeupISR() {
   wakeup = true;
 }
+
 char ch=0; //global variable for Serial.read()
+
 void setup() {
   pinMode(trig, OUTPUT);
   pinMode(echo, INPUT); 
   u8g2.begin(); // start the u8g2 library
   Serial.begin(9600);
+  Serial.println('Start');
   pinMode(2, INPUT_PULLUP);
   pinMode(switchPin, INPUT_PULLUP); // Set up the switch pin with a pull-up resistor
   attachInterrupt(digitalPinToInterrupt(2), handleInterrupt, FALLING);
@@ -214,20 +228,31 @@ void loop() {
     panelAmps = readCurrent();
     lastCurrentReadTime = currentTime;
   }
-  readWaterLevel();
+
+  // readWaterLevel();
+  Serial.println(currentState);
+
   switch (currentState) {
+
     case SLEEP:
       set_sleep_mode(SLEEP_MODE_PWR_DOWN);
       sleep_enable();
       attachInterrupt(digitalPinToInterrupt(2), wakeupISR, FALLING);
+
       while (!wakeup && !isSunny) { // Exit sleep mode when isSunny becomes true
         sleep_cpu();
+        digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
+        delay(2000);                       // wait for a second
+        digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
+        delay(1000);                       // wait for a second
       }
+
       sleep_disable();
       wakeup = false;
       currentState = STANDBY;
       // Exit sleep mode here
     break;
+
     case STANDBY:
       if (!isSunny || batLevel <= 12.0) {
         digitalWrite(3,  HIGH); //turn off the pump
@@ -244,6 +269,7 @@ void loop() {
           updateDisplay();
         }
       break;
+
     case ACTIVE:
       if (isSunny || (batLevel <= 12.0 || waterLevel >= 75)) {
         currentState = STANDBY;
