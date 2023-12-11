@@ -11,6 +11,8 @@ const int pumpPin = 2; // Define the pin for the pump
 const int panelPin = 4; // Define the pin for the solar panel
 
 //Measurement Variables
+float batLevel;
+float temp;
 int trig = 12;
 int echo = 11;
 float panelAmps;
@@ -24,7 +26,7 @@ boolean isSunny = true; //make sure system knows if sleep should be turned off
 int progress = 0; // progress of the progressbar
 float R1 = 10000.0;
 float R2 = 3000.0;
-float R3 = 14000.0;
+float R3 = 22300.0;
 float R4 = 10000.0;
 
 //screen constants rec by adafruit
@@ -164,7 +166,6 @@ void updateDisplay(){
     // }
 
 }
-float batLevel = 11.5;
 int waterLevel = 50;
 enum State {
   SLEEP,
@@ -193,41 +194,46 @@ void setup() {
 }
 
 State currentState = STANDBY;
-unsigned long lastVoltageReadTime = 0;
-unsigned long lastCurrentReadTime = 0;
-const unsigned long voltageReadInterval = 1000;  // 1 second
-const unsigned long currentReadInterval = 2000;  // 2 seconds
+// unsigned long lastVoltageReadTime = 0;
+// unsigned long lastCurrentReadTime = 0;
+// const unsigned long voltageReadInterval = 1000;  // 1 second
+// const unsigned long currentReadInterval = 2000;  // 2 seconds
 
 
 
 /////////////////////////MAIN LOOP/////////////////////////
 void loop() {
-  int switchState = digitalRead(switchPin);
+  delay(400);
+  // int switchState = digitalRead(switchPin);
 
   // Check the state of the switch
-  if (switchState == LOW) { // Switch is pressed (LOW)
-    currentState = SLEEP;
-  } else {
-    currentState = STANDBY;
-  }
+  // if (switchState == LOW) { // Switch is pressed (LOW)
+  //   currentState = SLEEP;
+  // } else {
+  //   currentState = STANDBY;
+  // }
 
-  unsigned long currentTime = millis();
+  //unsigned long currentTime = millis();
 
-  // Read solar panel voltage every 1 second
-  if (currentTime - lastVoltageReadTime >= voltageReadInterval) {
-    panelVolts = readSolarPanelVoltage();
-    lastVoltageReadTime = currentTime;
-  }
+  // // Read solar panel voltage every 1 second
+  // if (currentTime - lastVoltageReadTime >= voltageReadInterval) {
+  //   panelVolts = readSolarPanelVoltage();
+  //   lastVoltageReadTime = currentTime;
+  // }
 
-  // Read current every 2 seconds
-  if (currentTime - lastCurrentReadTime >= currentReadInterval) {
-    panelAmps = readCurrent();
-    lastCurrentReadTime = currentTime;
+  // // Read current every 2 seconds
+  // if (currentTime - lastCurrentReadTime >= currentReadInterval) {
+  //   panelAmps = readCurrent();
+  //   lastCurrentReadTime = currentTime;
+  // }
+  temp = readSolarPanelVoltage();
+  if(temp>2.0){
+    isSunny = true;
+  }else{
+    isSunny = false;
   }
-  batLevel = readBatteryVoltage();
   // readWaterLevel();
   Serial.println(currentState);
-
   switch (currentState) {
 
     case SLEEP:
@@ -246,6 +252,7 @@ void loop() {
       sleep_disable();
       wakeup = false;
       currentState = STANDBY;
+      Serial.println("Its schleepin");
       // Exit sleep mode here
     break;
 
@@ -258,7 +265,8 @@ void loop() {
       // Standby mode code here
 
       if (batLevel >= 13.4) {
-          digitalWrite(2,  LOW); //turn off pv to let bat discharge
+          digitalWrite(2,  HIGH); //turn off pv to let bat discharge
+          Serial.print("dRIVE HIGH");
         }else if (batLevel <= 13.4)
         {
           digitalWrite(2,  HIGH); //turn on pv to charge bat
@@ -274,11 +282,12 @@ void loop() {
       // Active mode code here
       digitalWrite(3,  LOW); //turn on the pump
       if (batLevel >= 13.4) {
-        digitalWrite(2,  HIGH); //turn off pv to let bat discharge
+        digitalWrite(2,  LOW); //turn off pv to let bat discharge
         updateDisplay();
       }else if (batLevel <= 13.4)
       {
-        digitalWrite(2,  LOW); //turn on pv to charge bat
+        digitalWrite(2, HIGH); //turn on pv to charge bat
+        
         updateDisplay();
       }
       break;
