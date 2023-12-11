@@ -31,6 +31,8 @@ boolean batFull = false; //assume battery is not full
 int progress = 0; // progress of the progressbar
 float R1 = 10000.0;
 float R2 = 3000.0;
+float R3 = 14000.0;
+float R4 = 10000.0;
 
 //screen constants rec by adafruit
 #define TRUE 1
@@ -55,7 +57,7 @@ void handleInterrupt() {
 float readSolarPanelVoltage() {
   // Read voltage using voltage divider (prolly two resistors)
   int rawValue = analogRead(A3);
-  float ADCvoltage = (rawValue * 5.1)/1023;
+  float ADCvoltage = (rawValue * 5.0)/1023;
   float voltage = ADCvoltage / (R2/(R1+R2));
   Serial.print("Solar Panel Voltage: ");
   Serial.print(voltage);
@@ -114,9 +116,9 @@ float readCurrent() {
 
 float readBatteryVoltage() {
   // Read voltage using voltage divider (prolly two resistors)
-  int rawBatValue = analogRead(A3);
-  float batVoltage = (rawBatValue * 5.1)/1023;
-  float final = batVoltage / (R2/(R1+R2));
+  int rawBatValue = analogRead(A2);
+  float batVoltage = (rawBatValue * 4.9)/1023;
+  float final = batVoltage / (R4/(R3+R4));
   Serial.print("Battery Voltage: ");
   Serial.print(final);
   Serial.print("\n");
@@ -193,7 +195,6 @@ void setup() {
   pinMode(echo, INPUT); 
   u8g2.begin(); // start the u8g2 library
   Serial.begin(9600);
-  Serial.println('Start');
   pinMode(2, INPUT_PULLUP);
   pinMode(switchPin, INPUT_PULLUP); // Set up the switch pin with a pull-up resistor
   attachInterrupt(digitalPinToInterrupt(2), handleInterrupt, FALLING);
@@ -233,13 +234,14 @@ void loop() {
     panelAmps = readCurrent();
     lastCurrentReadTime = currentTime;
   }
-  batLevel = 12.0;
+  batLevel = readBatteryVoltage();
   // readWaterLevel();
   Serial.println(currentState);
 
   switch (currentState) {
 
     case SLEEP:
+      Serial.println('SLEEP');
       set_sleep_mode(SLEEP_MODE_PWR_DOWN);
       sleep_enable();
       attachInterrupt(digitalPinToInterrupt(2), wakeupISR, FALLING);
