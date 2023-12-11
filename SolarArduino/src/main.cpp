@@ -6,7 +6,7 @@
 
   
 //Pin Definitions
-const int switchPin = 3; // Define the pin for the switch
+const int switchPin = 9; // Define the pin for the switch
 //const int pumpPin = 2; // Define the pin for the pump
 const int panelPin = 4; // Define the pin for the solar panel
 
@@ -76,36 +76,6 @@ float readCurrent() {
   delay(50);
 }
 
-// int readWaterLevel(){
-//   long t = 0, h = 0, hp = 0;
-  
-//   // Transmitting pulse
-//   digitalWrite(trig, LOW);
-//   delayMicroseconds(2);
-//   digitalWrite(trig, HIGH);
-//   delayMicroseconds(10);
-//   digitalWrite(trig, LOW);
-  
-//   // Waiting for pulse
-//   t = pulseIn(echo, HIGH);
-  
-//   // Calculating distance 
-//   h = t / 58;
- 
-//   h = h - 6;  // offset correction
-//   h = 50 - h;  // water height, 0 - 50 cm
-  
-//   hp = 2 * h;  // distance in %, 0-100 %
-  
-//   // Sending to computer
-//   Serial.println("Water Height: ");
-//   Serial.print(hp);
-//   // Serial.print(" cm\n");
-//   Serial.print("\n");
-//   return hp;
-//   delay(1000);
-// }
-
 float readBatteryVoltage() {
   // Read voltage using voltage divider (prolly two resistors)
   int rawBatValue = analogRead(A2);
@@ -154,19 +124,10 @@ void updateDisplay(){
     u8g2.setFont(u8g2_font_haxrcorp4089_tr);
     u8g2.drawStr(70, 26, "Watts");
     u8g2.drawXBMP( 99, 0, 29, 14, image_FaceNormal_29x14_bits);
-
-
-
     u8g2.sendBuffer();					// transfer internal memory to the display
-    
-    // increase the progress value to go over 0-100
-    // progress = progress + 1;
-    // if (progress > 42) {
-    //   progress = 0;
-    // }
 
 }
-int waterLevel = 50;
+int waterLevel = 90;
 enum State {
   SLEEP,
   STANDBY,
@@ -187,7 +148,7 @@ void setup() {
   u8g2.begin(); // start the u8g2 library
   Serial.begin(9600);
   pinMode(9, INPUT_PULLUP);
-  pinMode(switchPin, INPUT_PULLUP); // Set up the switch pin with a pull-up resistor
+  pinMode(2, OUTPUT);
   attachInterrupt(digitalPinToInterrupt(9), handleInterrupt, FALLING);
 
   delay(2000);         // wait for initializing
@@ -204,28 +165,7 @@ State currentState = STANDBY;
 /////////////////////////MAIN LOOP/////////////////////////
 void loop() {
   delay(400);
-  // int switchState = digitalRead(switchPin);
-
-  // Check the state of the switch
-  // if (switchState == LOW) { // Switch is pressed (LOW)
-  //   currentState = SLEEP;
-  // } else {
-  //   currentState = STANDBY;
-  // }
-
-  //unsigned long currentTime = millis();
-
-  // // Read solar panel voltage every 1 second
-  // if (currentTime - lastVoltageReadTime >= voltageReadInterval) {
-  //   panelVolts = readSolarPanelVoltage();
-  //   lastVoltageReadTime = currentTime;
-  // }
-
-  // // Read current every 2 seconds
-  // if (currentTime - lastCurrentReadTime >= currentReadInterval) {
-  //   panelAmps = readCurrent();
-  //   lastCurrentReadTime = currentTime;
-  // }
+  batLevel = readBatteryVoltage();
   temp = readSolarPanelVoltage();
   if(temp>2.0){
     isSunny = true;
@@ -252,7 +192,6 @@ void loop() {
       sleep_disable();
       wakeup = false;
       currentState = STANDBY;
-      Serial.println("Its schleepin");
       // Exit sleep mode here
     break;
 
@@ -265,8 +204,7 @@ void loop() {
       // Standby mode code here
 
       if (batLevel >= 13.4) {
-          digitalWrite(2,  HIGH); //turn off pv to let bat discharge
-          Serial.print("dRIVE HIGH");
+          digitalWrite(2,  LOW); //turn off pv to let bat discharge
         }else if (batLevel <= 13.4)
         {
           digitalWrite(2,  HIGH); //turn on pv to charge bat
