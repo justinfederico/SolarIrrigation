@@ -1,8 +1,6 @@
 #include <SPI.h>
 #include <Arduino.h>
 #include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
 #include <avr/sleep.h>
 #include <U8g2lib.h>
 
@@ -13,21 +11,16 @@ const int pumpPin = 2; // Define the pin for the pump
 const int panelPin = 4; // Define the pin for the solar panel
 
 //Measurement Variables
-const float AVCC = 4.863;
 int trig = 12;
 int echo = 11;
 float panelAmps;
 float panelVolts;
 float batVolts;
-float housingTemp;
 float panelWatts;
 const float lowBat = 12.0;
 const float fullBatt = 13.6;
 unsigned int interruptCounter;
-boolean load = false; //assume initial state of uncharged
 boolean isSunny = true; //make sure system knows if sleep should be turned off
-boolean pumpActive = false; //assume pump is off
-boolean batFull = false; //assume battery is not full
 int progress = 0; // progress of the progressbar
 float R1 = 10000.0;
 float R2 = 3000.0;
@@ -41,9 +34,6 @@ float R4 = 10000.0;
 #define OFF FALSE
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
-#define OLED_DC     8
-#define OLED_CS     10
-#define OLED_RESET  9
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE); // initialization for the used OLED display
 static const unsigned char image_FaceNormal_29x14_bits[] U8X8_PROGMEM = {0x00,0x00,0x00,0x00,0x3c,0x00,0x80,0x07,0x5e,0x00,0xc0,0x0b,0x7e,0x00,0xc0,0x0f,0x7e,0x00,0xc0,0x0f,0x7e,0x00,0xc0,0x0f,0x3c,0x00,0x80,0x07,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x00,0x08,0x02,0x00,0x00,0x08,0x02,0x00,0x00,0x08,0x02,0x00,0x00,0x10,0x01,0x00,0x00,0xe0,0x00,0x00};
 
@@ -59,7 +49,7 @@ float readSolarPanelVoltage() {
   int rawValue = analogRead(A3);
   float ADCvoltage = (rawValue * 5.0)/1023;
   float voltage = ADCvoltage / (R2/(R1+R2));
-  Serial.print("Solar Panel Voltage: ");
+  Serial.print(F("Solar Panel Voltage: "));
   Serial.print(voltage);
   Serial.print("\n");
 
@@ -69,17 +59,17 @@ float readSolarPanelVoltage() {
 float readCurrent() {
     float AcsValue = 0.0, Samples = 0.0, AvgAcs = 0.0, AcsValueF = 0.0;
  
-  for (int x = 0; x < 150; x++) { //Get 150 samples
-    AcsValue = analogRead(A0);     //Read current sensor values
-    Samples = Samples + AcsValue;  //Add samples together
-    delay (3); // let ADC settle before following sample 3ms
-  }
-  AvgAcs = Samples / 150.0; //Taking Average of Samples
-  AcsValueF = (2.5 - (AvgAcs * (5.0 / 1024.0)) )/0.100; //scaled for 20A current sensor
-  Serial.print("Current: ");
-  Serial.print(AcsValueF);//Print the read current on Serial monitor
-  Serial.print("\n");
-
+  // for (int x = 0; x < 150; x++) { //Get 150 samples
+  //   AcsValue = analogRead(A0);     //Read current sensor values
+  //   Samples = Samples + AcsValue;  //Add samples together
+  //   delay (3); // let ADC settle before following sample 3ms
+  // }
+  // AvgAcs = Samples / 150.0; //Taking Average of Samples
+  // AcsValueF = (2.5 - (AvgAcs * (5.0 / 1024.0)) )/0.100; //scaled for 20A current sensor
+  // Serial.print("Current: ");
+  // Serial.print(AcsValueF);//Print the read current on Serial monitor
+  // Serial.print("\n");
+  AcsValueF = 6.0;
   return AcsValueF;
   delay(50);
 }
@@ -117,9 +107,9 @@ float readCurrent() {
 float readBatteryVoltage() {
   // Read voltage using voltage divider (prolly two resistors)
   int rawBatValue = analogRead(A2);
-  float batVoltage = (rawBatValue * 4.9)/1023;
+  float batVoltage = (rawBatValue * 5.0)/1023;
   float final = batVoltage / (R4/(R3+R4));
-  Serial.print("Battery Voltage: ");
+  Serial.print(F("Battery Voltage: "));
   Serial.print(final);
   Serial.print("\n");
 }
@@ -241,7 +231,7 @@ void loop() {
   switch (currentState) {
 
     case SLEEP:
-      Serial.println('SLEEP');
+      Serial.println(F('SLEEP'));
       set_sleep_mode(SLEEP_MODE_PWR_DOWN);
       sleep_enable();
       attachInterrupt(digitalPinToInterrupt(2), wakeupISR, FALLING);
