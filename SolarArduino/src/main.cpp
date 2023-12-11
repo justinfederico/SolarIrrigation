@@ -114,10 +114,12 @@ float readCurrent() {
 
 float readBatteryVoltage() {
   // Read voltage using voltage divider (prolly two resistors)
-  int rawValue = analogRead(A1);
-  float voltage = (rawValue * (float)analogRead(A1)) / 1024.0;
-  voltage = voltage / 2.0; // Adjust for voltage divider
-  return voltage;
+  int rawBatValue = analogRead(A3);
+  float batVoltage = (rawBatValue * 5.1)/1023;
+  float final = batVoltage / (R2/(R1+R2));
+  Serial.print("Battery Voltage: ");
+  Serial.print(final);
+  Serial.print("\n");
 }
 
 void updateDisplay(){
