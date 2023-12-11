@@ -231,7 +231,6 @@ void loop() {
   switch (currentState) {
 
     case SLEEP:
-      Serial.println(F('SLEEP'));
       set_sleep_mode(SLEEP_MODE_PWR_DOWN);
       sleep_enable();
       attachInterrupt(digitalPinToInterrupt(2), wakeupISR, FALLING);
