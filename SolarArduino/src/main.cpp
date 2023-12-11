@@ -7,7 +7,7 @@
   
 //Pin Definitions
 const int switchPin = 3; // Define the pin for the switch
-const int pumpPin = 2; // Define the pin for the pump
+//const int pumpPin = 2; // Define the pin for the pump
 const int panelPin = 4; // Define the pin for the solar panel
 
 //Measurement Variables
@@ -186,9 +186,9 @@ void setup() {
   pinMode(echo, INPUT); 
   u8g2.begin(); // start the u8g2 library
   Serial.begin(9600);
-  pinMode(2, INPUT_PULLUP);
+  pinMode(9, INPUT_PULLUP);
   pinMode(switchPin, INPUT_PULLUP); // Set up the switch pin with a pull-up resistor
-  attachInterrupt(digitalPinToInterrupt(2), handleInterrupt, FALLING);
+  attachInterrupt(digitalPinToInterrupt(9), handleInterrupt, FALLING);
 
   delay(2000);         // wait for initializing
 }
@@ -239,7 +239,7 @@ void loop() {
     case SLEEP:
       set_sleep_mode(SLEEP_MODE_PWR_DOWN);
       sleep_enable();
-      attachInterrupt(digitalPinToInterrupt(2), wakeupISR, FALLING);
+      attachInterrupt(digitalPinToInterrupt(9), wakeupISR, FALLING);
 
       while (!wakeup && !isSunny) { // Exit sleep mode when isSunny becomes true
         sleep_cpu();
