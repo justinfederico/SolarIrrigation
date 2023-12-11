@@ -20,8 +20,7 @@ float panelAmps;
 float panelVolts;
 float batVolts;
 float housingTemp;
-float currentSolarWatts;
-float previousSolarWatts;
+float panelWatts;
 const float lowBat = 12.0;
 const float fullBatt = 13.6;
 unsigned int interruptCounter;
@@ -30,8 +29,8 @@ boolean isSunny = true; //make sure system knows if sleep should be turned off
 boolean pumpActive = false; //assume pump is off
 boolean batFull = false; //assume battery is not full
 int progress = 0; // progress of the progressbar
-float R1 = 68000.0;
-float R2 = 10000.0;
+float R1 = 10000.0;
+float R2 = 3000.0;
 
 //screen constants rec by adafruit
 #define TRUE 1
@@ -39,7 +38,7 @@ float R2 = 10000.0;
 #define ON TRUE
 #define OFF FALSE
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
-#define SCREEN_HEIGHT 64 // OLED display height, in pixels
+#define SCREEN_HEIGHT 32 // OLED display height, in pixels
 #define OLED_DC     8
 #define OLED_CS     10
 #define OLED_RESET  9
@@ -123,14 +122,16 @@ float readBatteryVoltage() {
 
 void updateDisplay(){
     u8g2.clearBuffer();					// clear the internal memory
-    // code from https://lopaka.app/
-    float PanelVolts = readSolarPanelVoltage();
-    float PanelAmps = readCurrent();
-    float PanelWatts = PanelVolts * PanelAmps;
+    //lopaka u8g2 screen code
+    batVolts = readBatteryVoltage();
+    panelVolts = readSolarPanelVoltage();
+    progress = map(panelVolts, 0, 21, 0, 100); 
+    panelAmps = readCurrent();
+    panelWatts = panelVolts * panelAmps;
     u8g2.setBitmapMode(1);
     u8g2.drawFrame(1, 32, 46, 21);
     u8g2.drawFrame(46, 38, 3, 9);
-    u8g2.drawBox(3, 34, progress, 17);
+    u8g2.drawBox(3, 34, map(progress, 0, 100, 0, 42), 17);
     u8g2.setFont(u8g2_font_haxrcorp4089_tr);
     u8g2.drawStr(1, 8, "Voltage:");
     u8g2.setFont(u8g2_font_haxrcorp4089_tr);
@@ -141,13 +142,13 @@ void updateDisplay(){
     u8g2.drawStr(1, 62, "Battery LvL");
     u8g2.setFont(u8g2_font_haxrcorp4089_tr);
     u8g2.setCursor(40, 17);
-    u8g2.print(PanelAmps);
+    u8g2.print(panelAmps);
     u8g2.setFont(u8g2_font_haxrcorp4089_tr);
     u8g2.setCursor(40, 26);
-    u8g2.print(PanelWatts);
+    u8g2.print(panelWatts);
     u8g2.setFont(u8g2_font_haxrcorp4089_tr);
     u8g2.setCursor(40, 8);
-    u8g2.print(PanelVolts);
+    u8g2.print(panelVolts);
     u8g2.setFont(u8g2_font_haxrcorp4089_tr);
     u8g2.drawStr(74, 62, "Water LvL");
     u8g2.setFont(u8g2_font_haxrcorp4089_tr);
@@ -163,10 +164,10 @@ void updateDisplay(){
     u8g2.sendBuffer();					// transfer internal memory to the display
     
     // increase the progress value to go over 0-100
-    progress = progress + 1;
-    if (progress > 42) {
-      progress = 0;
-    }
+    // progress = progress + 1;
+    // if (progress > 42) {
+    //   progress = 0;
+    // }
 
 }
 float batLevel = 11.5;
@@ -230,7 +231,7 @@ void loop() {
     panelAmps = readCurrent();
     lastCurrentReadTime = currentTime;
   }
-
+  batLevel = 12.0;
   // readWaterLevel();
   Serial.println(currentState);
 
@@ -264,10 +265,10 @@ void loop() {
       // Standby mode code here
 
       if (batLevel >= 13.4) {
-          digitalWrite(2,  HIGH); //turn off pv to let bat discharge
+          digitalWrite(2,  LOW); //turn off pv to let bat discharge
         }else if (batLevel <= 13.4)
         {
-          digitalWrite(2,  LOW); //turn on pv to charge bat
+          digitalWrite(2,  HIGH); //turn on pv to charge bat
           updateDisplay();
         }
       break;
