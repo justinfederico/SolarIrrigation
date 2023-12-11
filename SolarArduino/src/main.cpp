@@ -22,7 +22,7 @@ float panelWatts;
 const float lowBat = 12.0;
 const float fullBatt = 13.6;
 unsigned int interruptCounter;
-boolean isSunny = true; //make sure system knows if sleep should be turned off
+boolean isSunny; //make sure system knows if sleep should be turned off
 int progress = 0; // progress of the progressbar
 float R1 = 10000.0;
 float R2 = 3000.0;
@@ -30,10 +30,6 @@ float R3 = 22300.0;
 float R4 = 10000.0;
 
 //screen constants rec by adafruit
-#define TRUE 1
-#define FALSE 0
-#define ON TRUE
-#define OFF FALSE
 #define SCREEN_WIDTH 128 // OLED display width, in pixels
 #define SCREEN_HEIGHT 32 // OLED display height, in pixels
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/ U8X8_PIN_NONE); // initialization for the used OLED display
@@ -167,68 +163,58 @@ void loop() {
   delay(400);
   batLevel = readBatteryVoltage();
   temp = readSolarPanelVoltage();
-  if(temp>2.0){
+
+  if (temp > 2.0) {
     isSunny = true;
-  }else{
+  } else {
     isSunny = false;
   }
-  // readWaterLevel();
+
   Serial.println(currentState);
+  digitalWrite(2, HIGH); // turn on pv to charge bat
   switch (currentState) {
-
     case SLEEP:
-      set_sleep_mode(SLEEP_MODE_PWR_DOWN);
-      sleep_enable();
-      attachInterrupt(digitalPinToInterrupt(9), wakeupISR, FALLING);
+      // set_sleep_mode(SLEEP_MODE_PWR_DOWN);
+      // sleep_enable();
+      // attachInterrupt(digitalPinToInterrupt(9), wakeupISR, FALLING);
 
-      while (!wakeup && !isSunny) { // Exit sleep mode when isSunny becomes true
-        sleep_cpu();
-        digitalWrite(LED_BUILTIN, HIGH);   // turn the LED on (HIGH is the voltage level)
-        delay(2000);                       // wait for a second
-        digitalWrite(LED_BUILTIN, LOW);    // turn the LED off by making the voltage LOW
-        delay(1000);                       // wait for a second
-      }
+      // while (!wakeup && !isSunny) {
+      //   sleep_cpu();
+      //   digitalWrite(LED_BUILTIN, HIGH);
+      //   delay(2000);
+      //   digitalWrite(LED_BUILTIN, LOW);
+      //   delay(1000);
+      // }
 
-      sleep_disable();
-      wakeup = false;
+      // sleep_disable();
+      // wakeup = false;
       currentState = STANDBY;
-      // Exit sleep mode here
-    break;
+      break;
 
     case STANDBY:
-      if (!isSunny || batLevel <= 12.0) {
-        digitalWrite(3,  HIGH); //turn off the pump
+      if (isSunny==0 || batLevel <= 12.0) {
+        digitalWrite(3, LOW); // turn off the pump
         currentState = SLEEP;
-        // Enter sleep mode here
+      } else if (isSunny==1 && batLevel >= 13.0 && waterLevel <= 100) {
+        currentState = ACTIVE;
       }
       // Standby mode code here
-
-      if (batLevel >= 13.4) {
-          digitalWrite(2,  LOW); //turn off pv to let bat discharge
-        }else if (batLevel <= 13.4)
-        {
-          digitalWrite(2,  HIGH); //turn on pv to charge bat
-          updateDisplay();
-        }
+      updateDisplay();
       break;
 
     case ACTIVE:
-      if (isSunny || (batLevel <= 12.0 || waterLevel >= 75)) {
+      if (isSunny && (batLevel <= 12.0 || waterLevel >= 80)) {
         currentState = STANDBY;
-        // Exit active mode here
       }
       // Active mode code here
-      digitalWrite(3,  LOW); //turn on the pump
+      digitalWrite(3, HIGH); // turn on the pump
       if (batLevel >= 13.4) {
-        digitalWrite(2,  LOW); //turn off pv to let bat discharge
-        updateDisplay();
-      }else if (batLevel <= 13.4)
-      {
-        digitalWrite(2, HIGH); //turn on pv to charge bat
-        
-        updateDisplay();
+        digitalWrite(2, LOW); // turn off pv to let bat discharge
+      } else if (batLevel <= 13.4) {
+        digitalWrite(2, HIGH); // turn on pv to charge bat
       }
+      updateDisplay();
       break;
-  
+  }
 }
-}
+
