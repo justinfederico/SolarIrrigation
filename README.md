@@ -1,5 +1,5 @@
 # SolarIrrigation
-This repository will have all firmware related resources pertaining to Team 8's Capstone project.
+This repository will have all firmware related resources pertaining to Solar Solution's project.
 
 What is in this repo is subject to change, but as of writing it is a PlatformIO project designed for the Arduino Uno.
 The eventual goal is the amalgamation of every subsystem into a single PCB, if possible.
